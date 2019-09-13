@@ -151,7 +151,7 @@ def arc2chord(t1, t2, arclen):
     
     return (relative_pos[0], alpha[0]) if is_scalar else (relative_pos, alpha)
 
-def position_log(survey, tie_in, report_raw=False):
+def position_log(survey, tie_in, dog_leg_course_length = 100, report_raw=False):
     """
     Calculate a position log from a deviation survey and tie-in location
     """
@@ -182,10 +182,11 @@ def position_log(survey, tie_in, report_raw=False):
         k = np.concatenate(([0.0], np.divide(alpha, arclen)))
         return np.column_stack((md, tangents, pos, angle, k))
     else:
-        dog_leg = np.concatenate(([0.0], np.divide((18000.0 * np.divide(alpha, np.pi)), arclen)))
+        # dog_leg = np.concatenate(([0.0], np.divide((18000.0 * np.divide(alpha, np.pi)), arclen)))
+        dog_leg = np.concatenate(([0.0], np.rad2deg(alpha) * (dog_leg_course_length / arclen)))
         return np.column_stack((md, inc, az, pos, dog_leg))
 
-def inslerpolate(survey, tie_in, step=None, report_raw=False):
+def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_raw=False):
     """
     Interpolate a deviation survey via slerp.
     survey: a list deviation surveys. [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
@@ -224,7 +225,7 @@ def inslerpolate(survey, tie_in, step=None, report_raw=False):
     v_i = slerp(t, v_0, v_1, ang) # get the tangents at the interpolated points
     inc_az_i = toSpherical(v_i) # get the inc and azi of the interpolated tangents
     srv_i = np.column_stack((interp_depths, inc_az_i)) # [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
-    pos_log_i = position_log(srv_i, tie_in, report_raw=report_raw) # calc the postions of the interpolated points
+    pos_log_i = position_log(srv_i, tie_in, dog_leg_course_length= dog_leg_course_length, report_raw=report_raw) # calc the postions of the interpolated points
 
     return pos_log_i
 
