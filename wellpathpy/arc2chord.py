@@ -109,7 +109,10 @@ def S_and_T_survey():
     The test survey from Compendium One.
     """
     P1 = np.array([40.00, 40.00, 700.00]) # position at start (tie-in)
-    srv = np.array([[702.55, 5.50, 45.00], [1964.57, 29.75, 77.05], [5086.35, 29.75, 77.05], [9901.68, 120.00, 285.00]])
+    srv = np.array([[702.55, 5.50, 45.00], 
+                    [1964.57, 29.75, 77.05], 
+                    [5086.35, 29.75, 77.05], 
+                    [9901.68, 120.00, 285.00]])
     return srv, P1
 
 def arc2chord(t1, t2, arclen):
@@ -185,66 +188,83 @@ def position_log(survey, tie_in, report_raw=False):
 def inslerpolate(survey, tie_in, step=None, report_raw=False):
     """
     Interpolate a deviation survey via slerp.
-    survey: a list deviation surveys.
-    tie_in: the 3D position of the first survey in survey.
+    survey: a list deviation surveys. [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
+    tie_in: the 3D position of the first survey in survey. [N, E, V] at first survey station
     step: the step size to interpolate the survey at, or a list of depths to interpolate.
-    If step is None, just calculate the survey.
+    If step is None, just calculate the survey position log.
     report_raw: how to report the resulting position.
     """
-    if step is None:
-        return position_log(survey, tie_in, report_raw=report_raw)
+    if step is None: # no interpolation
+        return position_log(survey, tie_in, report_raw=report_raw) # so just return the position log
     pos_log = position_log(survey, tie_in, report_raw=True)
 
     mds = pos_log[:,0]
     tangents = pos_log[:,1:4]
-    tie_ins = pos_log[:,4:7]
+    # tie_ins = pos_log[:,4:7]
     angles = pos_log[:,7]
     
-    if np.ndim(step) == 0:
-        quant_ends = quantize([mds[0], mds[-1]], step)
-        interp_depths = np.arange(quant_ends[0], quant_ends[1] + step, step)
+    if np.ndim(step) == 0: # interpolate at an equal step size
+        quant_ends = quantize([mds[0], mds[-1]], step) # force the end points to be at a step position
+        interp_depths = np.arange(quant_ends[0], quant_ends[1] + step, step) # equal md steps to interpolate at
     else:
-        interp_depths = np.atleast_1d(step)
+        interp_depths = np.atleast_1d(step) # user has passed specific interpolation md's
     
-    interp_pos_logs = []
-    
-    segment_cnt = len(mds) - 1
-    for i in np.arange(segment_cnt):
-        md1, md2 = mds[i:i+2]
-        v0, v1 = tangents[i:i+2]
+    # interp_pos_logs = []
+
+    # get the indexes of the begining and ending stations for each interpolated point that the points falls in
+    # a md will be GTEQ to the begining and LT the end of the segment
+    interp_idx_b = np.searchsorted(mds, interp_depths) # indexes of the would be interpolated points
+    interp_idx_b[interp_idx_b < 1] = 1 # move zero indexes to one so the 'b' indexes are the end of segments
+    interp_idx_a = interp_idx_b - 1 # move the 'a' indexes to the begining of the segments
+
+    t = (interp_depths - mds[interp_idx_a]) / (mds[interp_idx_b] - mds[interp_idx_a]) # fraction in each segment of interp points
+    v_0 = tangents[interp_idx_a]
+    v_1 = tangents[interp_idx_b]
+    ang = angles[interp_idx_b] # angle at the end of the segment
+    v_i = slerp(t, v_0, v_1, ang) # get the tangents at the interpolated points
+    inc_az_i = toSpherical(v_i) # get the inc and azi of the interpolated tangents
+    srv_i = np.column_stack((interp_depths, inc_az_i)) # [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
+    pos_log_i = position_log(srv_i, tie_in, report_raw=report_raw) # calc the postions of the interpolated points
+
+    return pos_log_i
+
+    # segment_cnt = len(mds) - 1
+    # for i in np.arange(segment_cnt):
+    #     md1, md2 = mds[i:i+2]
+    #     v0, v1 = tangents[i:i+2]
         
-        if (i < segment_cnt  - 1):
-            mds_i = interp_depths[(interp_depths >= md1) & (interp_depths < md2)]
-        else:
-            mds_i = interp_depths[(interp_depths >= md1) & (interp_depths <= md2)]
+    #     if (i < segment_cnt  - 1):
+    #         mds_i = interp_depths[(interp_depths >= md1) & (interp_depths < md2)]
+    #     else:
+    #         mds_i = interp_depths[(interp_depths >= md1) & (interp_depths <= md2)]
             
-        if len(mds_i) == 0:
-            continue
+    #     if len(mds_i) == 0:
+    #         continue
             
-        strip_head = mds_i[0] != md1
-        if strip_head:
-            strip_head = True
-            mds_i = np.concatenate([[md1], mds_i])
-        strip_tail = mds_i[-1] != md2
-        if strip_tail:
-            strip_tail = True
-            mds_i = np.concatenate([mds_i, [md2]])
+    #     strip_head = mds_i[0] != md1
+    #     if strip_head:
+    #         strip_head = True
+    #         mds_i = np.concatenate([[md1], mds_i])
+    #     strip_tail = mds_i[-1] != md2
+    #     if strip_tail:
+    #         strip_tail = True
+    #         mds_i = np.concatenate([mds_i, [md2]])
     
-        t = (mds_i - md1) / (md2 - md1)
-        ang = angles[i+1]
-        v_i = slerp(t, v0, v1, ang)
-        inc_az_i = toSpherical(v_i)
-        srv_i = np.column_stack((mds_i, inc_az_i))
-        tie_in_i = tie_ins[i]
-        pos_log_i = position_log(srv_i, tie_in_i, report_raw=report_raw)
+    #     t = (mds_i - md1) / (md2 - md1)
+    #     ang = angles[i+1]
+    #     v_i = slerp(t, v0, v1, ang)
+    #     inc_az_i = toSpherical(v_i)
+    #     srv_i = np.column_stack((mds_i, inc_az_i))
+    #     tie_in_i = tie_ins[i]
+    #     pos_log_i = position_log(srv_i, tie_in_i, report_raw=report_raw)
         
-        if strip_head:
-            pos_log_i = pos_log_i[1:]
-        if strip_tail:
-            pos_log_i = pos_log_i[:-1]
-        interp_pos_logs.append(pos_log_i)
+    #     if strip_head:
+    #         pos_log_i = pos_log_i[1:]
+    #     if strip_tail:
+    #         pos_log_i = pos_log_i[:-1]
+    #     interp_pos_logs.append(pos_log_i)
         
-    return interp_pos_logs if len(interp_pos_logs) == 0 else np.concatenate(interp_pos_logs, axis=0)
+    # return interp_pos_logs if len(interp_pos_logs) == 0 else np.concatenate(interp_pos_logs, axis=0)
 
 def project(survey, tie_in, to_md, curvature=None, report_raw=False):
     """
