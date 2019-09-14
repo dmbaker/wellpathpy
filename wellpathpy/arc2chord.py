@@ -364,7 +364,7 @@ def main():
     print("")
 
     srv, tie = np.array(S_and_T_survey())
-    hdr, pos = S_and_T_pos_log()
+    _, pos = S_and_T_pos_log()
     pos = np.array(pos)
     pos_srv = pos[pos[:,0]==0][:,1:]
     pos_org = pos[pos[:,0]==1][:,1:]
