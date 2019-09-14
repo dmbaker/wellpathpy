@@ -221,28 +221,41 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     
     if np.ndim(step) == 0: # interpolate at an equal step size
         quant_ends = quantize([mds[0], mds[-1]], step) # force the end points to be at a step position
+        if quant_ends[0] < mds[0]: # make sure we do not start before the first md
+            quant_ends[0] += step
         interp_depths = np.arange(quant_ends[0], quant_ends[1] + step, step) # equal md steps to interpolate at
     else:
         interp_depths = np.atleast_1d(step) # user has passed specific interpolation md's
-    
-    # interp_pos_logs = []
+        if np.any(interp_depths < mds[0]):
+            raise SurveyError('Some interpolation depths are less than the first depth in the survey.')
 
     # get the indexes of the begining and ending stations for each interpolated point that the points falls in
     # a md will be GTEQ to the begining and LT the end of the segment
     interp_idx_b = np.searchsorted(mds, interp_depths) # indexes of the would be interpolated points
     interp_idx_b[interp_idx_b < 1] = 1 # move zero indexes to one so the 'b' indexes are the end of segments
-    interp_idx_a = interp_idx_b - 1 # move the 'a' indexes to the begining of the segments
+    interp_idx_a = (interp_idx_b - 1) # move the 'a' indexes to the begining of the segments
 
     t = (interp_depths - mds[interp_idx_a]) / (mds[interp_idx_b] - mds[interp_idx_a]) # fraction in each segment of interp points
     v_0 = tangents[interp_idx_a]
     v_1 = tangents[interp_idx_b]
-    ang = angles[interp_idx_b] # angle at the end of the segment
+    ang = angles[interp_idx_b] # angle at the end of the segment. we could calc from v_0 and v_1 but we have it already
     v_i = slerp(t, v_0, v_1, ang) # get the tangents at the interpolated points
     inc_az_i = toSpherical(v_i) # get the inc and azi of the interpolated tangents
-    srv_i = np.column_stack((interp_depths, inc_az_i)) # [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
-    pos_log_i = position_log(srv_i, tie_in, dog_leg_course_length= dog_leg_course_length, report_raw=report_raw) # calc the postions of the interpolated points
+    srv_i = np.column_stack((interp_depths, inc_az_i)) # [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...] surveys at interp points
+    
+    srv_org_dict = {srv[0]: srv for srv in survey} # a dict of our original surveys keyed by md
+    srv_itp_dict = {srv[0]: srv for srv in srv_i}  # a dict of our interpolated surveys keyed by md
+    srv_mrg_dict = srv_org_dict.copy()
+    srv_mrg_dict.update(srv_itp_dict) # merge the original and interpolated
+    srv_cmb = [srv_mrg_dict[md] for md in sorted(srv_mrg_dict.keys())] # combined list of surveys in md order
 
-    return pos_log_i
+    pos_log = position_log(srv_cmb, tie_in, dog_leg_course_length=dog_leg_course_length, report_raw=report_raw) # calc the postions of the interpolated points
+    pos_log_dict = {pos[0]: pos for pos in pos_log} # dict of pos log keyed by md
+    interp_pos_logs = [pos_log_dict[md]  for md in interp_depths] # get the interpolated postion log
+
+    return np.concatenate(interp_pos_logs, axis=0)
+
+    # interp_pos_logs = []
 
     # segment_cnt = len(mds) - 1
     # for i in np.arange(segment_cnt):
@@ -341,3 +354,32 @@ def verticalSection(vs_azimuth):
         z[:,2] = 0.0
         return np.dot(z, az)
     return _f
+
+
+def main():
+    # np.set_printoptions(precision=7, floatmode='fixed')
+    np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.3f}'.format})
+
+    print("Hello World!")
+    print("")
+
+    srv, tie = np.array(S_and_T_survey())
+    hdr, pos = S_and_T_pos_log()
+    pos = np.array(pos)
+    pos_srv = pos[pos[:,0]==0][:,1:]
+    pos_org = pos[pos[:,0]==1][:,1:]
+    print(pos_srv)
+    print("")
+    pos_clc = inslerpolate(srv, tie)
+    print(pos_clc)
+    print("")
+    print(pos_srv - pos_clc)
+    print("")
+    print(pos_org)
+    print("")
+    pos_ipt = inslerpolate(srv, tie, [pos_org[0,0]])
+    print(pos_ipt)
+
+  
+if __name__== "__main__":
+    main()
