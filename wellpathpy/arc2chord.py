@@ -166,10 +166,11 @@ def arc2chord(t1, t2, arclen):
     
     return (relative_pos[0], alpha[0]) if is_scalar else (relative_pos, alpha)
 
-def position_log(survey, tie_in, dog_leg_course_length = 100, report_raw=False):
+def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False):
     """
     Calculate a position log from a deviation survey and tie-in location
     """
+    survey = np.array(survey)
     md = survey[:,0]
     if np.all(md[:1] > md[:-1]):
         raise SurveyError('All measured depths must be strictly increasing.')
@@ -197,8 +198,11 @@ def position_log(survey, tie_in, dog_leg_course_length = 100, report_raw=False):
         k = np.concatenate(([0.0], np.divide(alpha, arclen)))
         return np.column_stack((md, tangents, pos, angle, k))
     else:
-        # dog_leg = np.concatenate(([0.0], np.divide((18000.0 * np.divide(alpha, np.pi)), arclen)))
-        dog_leg = np.concatenate(([0.0], np.rad2deg(alpha) * (dog_leg_course_length / arclen)))
+        #dog_leg = np.concatenate(([0.0], np.divide((18000.0 * np.divide(alpha, np.pi)), arclen)))
+        #if dog_leg_course_length == 30:
+        #    dog_leg *= 0.984252
+        #dog_leg = np.concatenate(([0.0], (np.rad2deg(alpha) * (dog_leg_course_length / arclen))))
+        dog_leg = np.concatenate(([0.0], (np.rad2deg(alpha) * dog_leg_course_length / arclen)))
         return np.column_stack((md, inc, az, pos, dog_leg))
 
 def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_raw=False):
@@ -210,6 +214,7 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     If step is None, just calculate the survey position log.
     report_raw: how to report the resulting position.
     """
+    survey = np.array(survey)
     if step is None: # no interpolation
         return position_log(survey, tie_in, report_raw=report_raw) # so just return the position log
     pos_log = position_log(survey, tie_in, report_raw=True)
@@ -239,12 +244,12 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     v_0 = tangents[interp_idx_a]
     v_1 = tangents[interp_idx_b]
     ang = angles[interp_idx_b] # angle at the end of the segment. we could calc from v_0 and v_1 but we have it already
-    v_i = slerp(t, v_0, v_1, ang) # get the tangents at the interpolated points
-    inc_az_i = toSpherical(v_i) # get the inc and azi of the interpolated tangents
-    srv_i = np.column_stack((interp_depths, inc_az_i)) # [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...] surveys at interp points
+    v_i = [slerp(t[i], v_0[i], v_1[i], ang[i]) for i in np.arange(len(interp_depths))] # get the tangents at the interpolated points
+    inc_azi = toSpherical(v_i) # get the inc and azi of the interpolated tangents
+    srv_itp = np.column_stack((interp_depths, inc_azi)) # [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...] surveys at interp points
     
     srv_org_dict = {srv[0]: srv for srv in survey} # a dict of our original surveys keyed by md
-    srv_itp_dict = {srv[0]: srv for srv in srv_i}  # a dict of our interpolated surveys keyed by md
+    srv_itp_dict = {srv[0]: srv for srv in srv_itp}  # a dict of our interpolated surveys keyed by md
     srv_mrg_dict = srv_org_dict.copy()
     srv_mrg_dict.update(srv_itp_dict) # merge the original and interpolated
     srv_cmb = [srv_mrg_dict[md] for md in sorted(srv_mrg_dict.keys())] # combined list of surveys in md order
@@ -253,7 +258,7 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     pos_log_dict = {pos[0]: pos for pos in pos_log} # dict of pos log keyed by md
     interp_pos_logs = [pos_log_dict[md]  for md in interp_depths] # get the interpolated postion log
 
-    return np.concatenate(interp_pos_logs, axis=0)
+    return np.array(interp_pos_logs)
 
     # interp_pos_logs = []
 
@@ -377,8 +382,25 @@ def main():
     print("")
     print(pos_org)
     print("")
-    pos_ipt = inslerpolate(srv, tie, [pos_org[0,0]])
+    pos_ipt = inslerpolate(srv, tie, pos_org[:,0])
     print(pos_ipt)
+    print("")
+    print(pos_org - pos_ipt)
+
+    deviation = np.genfromtxt('./data/deviation.csv', delimiter=',', skip_header=1)
+    deviation = np.row_stack(([0,0,0,0,0,0,0], deviation))
+    devsrv = deviation[:,0:3]
+    print("")
+    print(devsrv)
+    devtie = np.column_stack([deviation[:,4], deviation[:,5], deviation[:,3]])
+    print("")
+    print(devtie)
+    devpos = inslerpolate(devsrv, devtie[0], dog_leg_course_length=30)
+    print("")
+    print(devpos)
+    print("")
+    print(deviation[-4:])
+
 
   
 if __name__== "__main__":
