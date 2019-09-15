@@ -134,9 +134,9 @@ def Adams_pos_log():
     md = [3000, 3300, 3600, 3900, 5000, 6000, 7000, 8000, 9000, 10000]
     inc = [2.0, 4.0, 8.0, 12.0, 15.0, 16.0, 17.0, 17.0, 17.0, 17.0]
     azi = [28.0, 10.0, 35.0, 25.0, 30.0, 28.0, 50.0, 20.0, 30.0, 25.0]
-    n = [0.0, 14.93, 42.35, 87.74, 314.71, 584.48, 764.35, 996.13, 1260.16, 1519.26]
+    n = [0.0, 14.93, 42.35, 87.74, 314.71, 548.48, 764.35, 996.13, 1260.16, 1519.26]
     e = [0.0, 4.28, 18.07, 43.24, 162.77, 292.18, 469.05, 631.34, 754.46, 889.34]
-    v = [3000.0, 3299.58, 3597.92, 3893.32, 4962.85, 5926.47, 6868.22, 7844.36, 8800.87, 9757.22]
+    v = [3000.0, 3299.58, 3597.92, 3893.32, 4962.85, 5926.47, 6886.22, 7844.36, 8800.87, 9757.22]
     return np.column_stack((md, inc, azi, n, e, v))
 
 def arc2chord(t1, t2, arclen):
@@ -369,6 +369,17 @@ def verticalSection(vs_azimuth):
         return np.dot(z, az)
     return _f
 
+def Adams_test():
+    adams = Adams_pos_log()
+    print("")
+    print(adams)
+    pos_log = inslerpolate(adams[:,0:3], adams[0,3:6])
+    print("")
+    print(pos_log)
+    print("")
+    print(adams - pos_log[:,:-1])
+    print("")
+    print(inslerpolate(adams[:,0:3], adams[0,3:6], step=1000))
 
 def main():
     # np.set_printoptions(precision=7, floatmode='fixed')
@@ -376,6 +387,10 @@ def main():
 
     print("Hello World!")
     print("")
+
+    if True:
+        Adams_test()
+        return
 
     srv, tie = np.array(S_and_T_survey())
     _, pos = S_and_T_pos_log()
