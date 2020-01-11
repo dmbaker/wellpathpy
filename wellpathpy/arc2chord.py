@@ -185,7 +185,10 @@ def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False, de
     tie_in: the 3D position of the first survey in survey. [N, E, V] at first survey station
     dog_leg_course_length: a float that is the normalisation length to calculate dogleg
     severity, e.g., 100 -> degrees per 100 feet, 30 -> degrees per 30 meters.
-    report_raw: how to report the resulting position.
+    report_raw: how to report the resulting position log.
+    decimals: an interger.  The number of decimals to round the relative positions
+    before they are cumsum'ed to the absolute positions.  This limits the precision of the
+    values propigated with increasing MD.
     """
     survey = np.array(survey)
     md = survey[:,0]
@@ -234,6 +237,9 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     dog_leg_course_length: a float that is the normalisation length to calculate dogleg
     severity, e.g., 100 -> degrees per 100 feet, 30 -> degrees per 30 meters.
     report_raw: how to report the resulting position.
+    decimals: an interger.  The number of decimals to round the relative positions
+    before they are cumsum'ed to the absolute positions.  This limits the precision of the
+    values propigated with increasing MD.
     """
     survey = np.array(survey)
     if step is None: # no interpolation
@@ -326,6 +332,9 @@ def project(survey, tie_in, to_md, curvature=None, report_raw=False, decimals=No
     Project a deviation survey to a measured depth beyond the last survey station.
     Returns a deviation survey with the projected survey appended to the end.
     If curvature is None, the curvature from the last arc of the survey is used.
+    decimals: an interger.  The number of decimals to round the relative positions
+    before they are cumsum'ed to the absolute positions.  This limits the precision of the
+    values propigated with increasing MD.
     """
     survey = np.asarray(survey)
     pos_log = position_log(survey, tie_in, report_raw=True, decimals=decimals)[-2:] # grab the last two surveys
