@@ -151,7 +151,7 @@ def arc2chord(t1, t2, arclen):
     arclen = np.atleast_1d(arclen)
     cnt = len(arclen)
     t1 = np.atleast_2d(t1)
-    t1 = np.atleast_2d(t1)
+    t2 = np.atleast_2d(t2)
     
     t_add = t1 + t2 # add the tangent vectors; a vector that points to the end of the arc from the start
     lsqrd_t_add = np.einsum('ij,ij->i', t_add, t_add) # the length squared of the vector sum... same as: np.sum(t12*t12, axis=1)
