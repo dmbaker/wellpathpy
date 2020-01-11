@@ -158,9 +158,9 @@ def arc2chord(t1, t2, arclen):
     anti_parallel = lsqrd_t_add == 0 # test for anti-parallel tangent vectors, the singuar case
     lsqrd_t_add[anti_parallel] = 1.0 # set so we prevents div-by-zero when unitizing the direction vector
     len_t_add = np.sqrt(lsqrd_t_add) # the length of the addition vector
-    norm_t_add = np.divide(t_add, len_t_add[:,None]) # normalized the addition vector to unit vector point to the end of the arc
+    norm_t_add = np.divide(t_add, len_t_add[:,None]) # normalize the addition vector to unit vector point to the end of the arc
     
-    t_sub = t2 - t1 # subtract the tangent vectors; the chord of on a unit circle
+    t_sub = t2 - t1 # subtract the tangent vectors; the chord on a unit circle
     lsqrd_t_sub = np.einsum('ij,ij->i', t_sub, t_sub) # the length squared of the vector subtraction
     len_t_sub = np.sqrt(lsqrd_t_sub) # the length of the subtraction vector
     
