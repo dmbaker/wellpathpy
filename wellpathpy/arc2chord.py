@@ -131,6 +131,9 @@ def S_and_T_pos_log():
     return head, pos
 
 def Adams_pos_log():
+    """
+    Survey Data Obtained from Adams and Charrier (1985)
+    """
     md = [3000, 3300, 3600, 3900, 5000, 6000, 7000, 8000, 9000, 10000]
     inc = [2.0, 4.0, 8.0, 12.0, 15.0, 16.0, 17.0, 17.0, 17.0, 17.0]
     azi = [28.0, 10.0, 35.0, 25.0, 30.0, 28.0, 50.0, 20.0, 30.0, 25.0]
@@ -145,7 +148,7 @@ def arc2chord(t1, t2, arclen):
     given tangents at the ends of the arc and the arc length between
     the tangents.
     Assumes survey values are correct
-    and if arrays of values, the arrays are all the same length.
+    and if arrays of values, the arrays must all be the same length.
     """
     is_scalar = np.ndim(arclen) == 0
     arclen = np.atleast_1d(arclen)
@@ -177,7 +180,12 @@ def arc2chord(t1, t2, arclen):
 
 def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False):
     """
-    Calculate a position log from a deviation survey and tie-in location
+    Calculate a position log from a deviation survey and tie-in location.
+    survey: a list deviation surveys. [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
+    tie_in: the 3D position of the first survey in survey. [N, E, V] at first survey station
+    dog_leg_course_length: a float that is the normalisation length to calculate dogleg
+    severity, e.g., 100 -> degrees per 100 feet, 30 -> degrees per 30 meters.
+    report_raw: how to report the resulting position.
     """
     survey = np.array(survey)
     md = survey[:,0]
@@ -221,6 +229,8 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     tie_in: the 3D position of the first survey in survey. [N, E, V] at first survey station
     step: the step size to interpolate the survey at, or a list of depths to interpolate.
     If step is None, just calculate the survey position log.
+    dog_leg_course_length: a float that is the normalisation length to calculate dogleg
+    severity, e.g., 100 -> degrees per 100 feet, 30 -> degrees per 30 meters.
     report_raw: how to report the resulting position.
     """
     survey = np.array(survey)
@@ -245,7 +255,7 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
 
     # get the indexes of the begining and ending stations for each interpolated point that the points falls in
     # a md will be GTEQ to the begining and LT the end of the segment
-    interp_idx_b = np.searchsorted(mds, interp_depths) # indexes of the would be interpolated points
+    interp_idx_b = np.searchsorted(mds, interp_depths) # indexes of the would-be interpolated points
     interp_idx_b[interp_idx_b < 1] = 1 # move zero indexes to one so the 'b' indexes are the end of segments
     interp_idx_a = (interp_idx_b - 1) # move the 'a' indexes to the begining of the segments
 
