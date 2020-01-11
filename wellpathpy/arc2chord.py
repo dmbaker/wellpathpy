@@ -178,7 +178,7 @@ def arc2chord(t1, t2, arclen):
     
     return (relative_pos[0], alpha[0]) if is_scalar else (relative_pos, alpha)
 
-def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False):
+def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False, decimals=None):
     """
     Calculate a position log from a deviation survey and tie-in location.
     survey: a list deviation surveys. [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
@@ -206,6 +206,8 @@ def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False):
     
     tangents = toUnitDir(inc, az)
     rela_pos, alpha = arc2chord(tangents[:-1], tangents[1:], arclen)
+    if(not decimals is None):
+        rela_pos = np.around(rela_pos, decimals=decimals)
     
     pos = tie_in + np.cumsum(rela_pos, axis=0)
     pos = np.concatenate(([tie_in], pos), axis=0)
@@ -222,7 +224,7 @@ def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False):
         dog_leg = np.concatenate(([0.0], (np.rad2deg(alpha) * dog_leg_course_length / arclen)))
         return np.column_stack((md, inc, az, pos, dog_leg))
 
-def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_raw=False):
+def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_raw=False, decimals=None):
     """
     Interpolate a deviation survey via slerp.
     survey: a list deviation surveys. [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
@@ -235,8 +237,8 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     """
     survey = np.array(survey)
     if step is None: # no interpolation
-        return position_log(survey, tie_in, report_raw=report_raw) # so just return the position log
-    pos_log = position_log(survey, tie_in, report_raw=True)
+        return position_log(survey, tie_in, report_raw=report_raw, decimals=decimals) # so just return the position log
+    pos_log = position_log(survey, tie_in, report_raw=True, decimals=decimals)
 
     mds = pos_log[:,0]
     tangents = pos_log[:,1:4]
@@ -273,7 +275,7 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     srv_mrg_dict.update(srv_itp_dict) # merge the original and interpolated
     srv_cmb = [srv_mrg_dict[md] for md in sorted(srv_mrg_dict.keys())] # combined list of surveys in md order
 
-    pos_log = position_log(srv_cmb, tie_in, dog_leg_course_length=dog_leg_course_length, report_raw=report_raw) # calc the postions of the interpolated points
+    pos_log = position_log(srv_cmb, tie_in, dog_leg_course_length=dog_leg_course_length, report_raw=report_raw, decimals=decimals) # calc the postions of the interpolated points
     pos_log_dict = {pos[0]: pos for pos in pos_log} # dict of pos log keyed by md
     interp_pos_logs = [pos_log_dict[md]  for md in interp_depths] # get the interpolated postion log
 
@@ -319,14 +321,14 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
         
     # return interp_pos_logs if len(interp_pos_logs) == 0 else np.concatenate(interp_pos_logs, axis=0)
 
-def project(survey, tie_in, to_md, curvature=None, report_raw=False):
+def project(survey, tie_in, to_md, curvature=None, report_raw=False, decimals=None):
     """
     Project a deviation survey to a measured depth beyond the last survey station.
     Returns a deviation survey with the projected survey appended to the end.
     If curvature is None, the curvature from the last arc of the survey is used.
     """
     survey = np.asarray(survey)
-    pos_log = position_log(survey, tie_in, report_raw=True)[-2:] # grab the last two surveys
+    pos_log = position_log(survey, tie_in, report_raw=True, decimals=decimals)[-2:] # grab the last two surveys
     
     mds = pos_log[:,0]
     tangents = pos_log[:,1:4]
@@ -338,14 +340,14 @@ def project(survey, tie_in, to_md, curvature=None, report_raw=False):
     if curvature <= 0: # straight hole
         sta_proj = np.concatenate([[to_md], toSpherical(tangents[1])])
         srv_plus = np.concatenate([survey, [sta_proj]], axis=0)
-        return position_log(srv_plus, tie_in, report_raw=report_raw)
+        return position_log(srv_plus, tie_in, report_raw=report_raw, decimals=decimals)
     
     t = (to_md - mds[1]) / (mds[1] - mds[0])
     ang = curvature * (mds[1] - mds[0])
     v_i = slerp(t, tangents[0], tangents[1], ang)
     sta_proj = np.concatenate([[to_md], toSpherical(v_i)])
     srv_plus = np.concatenate([survey, [sta_proj]], axis=0)
-    return position_log(srv_plus, tie_in, report_raw=report_raw)
+    return position_log(srv_plus, tie_in, report_raw=report_raw, decimals=decimals)
 
 def verticalSection(vs_azimuth):
     """
@@ -383,13 +385,13 @@ def Adams_test():
     adams = Adams_pos_log()
     print("")
     print(adams)
-    pos_log = inslerpolate(adams[:,0:3], adams[0,3:6])
+    pos_log = inslerpolate(adams[:,0:3], adams[0,3:6], decimals=None)
     print("")
     print(pos_log)
     print("")
     print(adams - pos_log[:,:-1])
     print("")
-    print(inslerpolate(adams[:,0:3], adams[0,3:6], step=1000))
+    print(inslerpolate(adams[:,0:3], adams[0,3:6], step=1000, decimals=None))
 
 def main():
     # np.set_printoptions(precision=7, floatmode='fixed')
