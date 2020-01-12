@@ -22,6 +22,9 @@ def modulus(theta, modby):
 def quantize(x, fraction=0.5):
     """
     Round a number, or list of numbers, to the closest fraction.
+
+    Examples
+    --------
     >>> quantize(1.3, fraction=0.5)
     1.5
     >>> quantize(2.6, fraction=0.5)
@@ -69,8 +72,7 @@ def toSpherical(unit_t):
     
     inc = np.arctan2(np.sqrt(unit_t[:,0] * unit_t[:,0] + unit_t[:,1] * unit_t[:,1]), unit_t[:,2])
     az = np.arctan2(unit_t[:,1], unit_t[:,0])
-    # return a result for az such that az is [0.0, 360.0)
-    az[az < 0.0] += 2.0 * np.pi
+    az[az < 0.0] += 2.0 * np.pi # return a result for az such that az is [0.0, 360.0)
     ia = np.column_stack((np.rad2deg(inc), np.rad2deg(az)))
     return ia[0] if is_1d else ia
 
@@ -78,8 +80,9 @@ def slerp(t, u, v, theta=None):
     """
     Spherical linear interpolation.
     Returns a unit vector a fraction, t, between unit vectors u and v.
+
     t: a float or an array of floats to interpolate.
-    u and v: are unit vectors.
+        u and v: are unit vectors.
     theta: the angle between u and v. If none then the angle is calculated.
     """
     def _sin_over_x(x):
@@ -184,11 +187,11 @@ def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False, de
     survey: a list deviation surveys. [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
     tie_in: the 3D position of the first survey in survey. [N, E, V] at first survey station
     dog_leg_course_length: a float that is the normalisation length to calculate dogleg
-    severity, e.g., 100 -> degrees per 100 feet, 30 -> degrees per 30 meters.
+        severity, e.g., 100 -> degrees per 100 feet, 30 -> degrees per 30 meters.
     report_raw: how to report the resulting position log.
     decimals: an interger.  The number of decimals to round the relative positions
-    before they are cumsum'ed to the absolute positions.  This limits the precision of the
-    values propigated with increasing MD.
+        before they are cumsum'ed to the absolute positions.  This limits the precision of the
+        values propigated with increasing MD.
     """
     survey = np.array(survey)
     md = survey[:,0]
@@ -233,13 +236,13 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     survey: a list deviation surveys. [[md_0, inc_0, azi_0], [md_1, inc_1, azi_1],...]
     tie_in: the 3D position of the first survey in survey. [N, E, V] at first survey station
     step: the step size to interpolate the survey at, or a list of depths to interpolate.
-    If step is None, just calculate the survey position log.
+        If step is None, just calculate the survey position log.
     dog_leg_course_length: a float that is the normalisation length to calculate dogleg
-    severity, e.g., 100 -> degrees per 100 feet, 30 -> degrees per 30 meters.
+        severity, e.g., 100 -> degrees per 100 feet, 30 -> degrees per 30 meters.
     report_raw: how to report the resulting position.
     decimals: an interger.  The number of decimals to round the relative positions
-    before they are cumsum'ed to the absolute positions.  This limits the precision of the
-    values propigated with increasing MD.
+        before they are cumsum'ed to the absolute positions.  This limits the precision of the
+        values propigated with increasing MD.
     """
     survey = np.array(survey)
     if step is None: # no interpolation
@@ -333,8 +336,8 @@ def project(survey, tie_in, to_md, curvature=None, report_raw=False, decimals=No
     Returns a deviation survey with the projected survey appended to the end.
     If curvature is None, the curvature from the last arc of the survey is used.
     decimals: an interger.  The number of decimals to round the relative positions
-    before they are cumsum'ed to the absolute positions.  This limits the precision of the
-    values propigated with increasing MD.
+        before they are cumsum'ed to the absolute positions.  This limits the precision of the
+        values propigated with increasing MD.
     """
     survey = np.asarray(survey)
     pos_log = position_log(survey, tie_in, report_raw=True, decimals=decimals)[-2:] # grab the last two surveys
