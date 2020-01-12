@@ -223,10 +223,6 @@ def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False, de
         k = np.concatenate(([0.0], np.divide(alpha, arclen)))
         return np.column_stack((md, tangents, pos, angle, k))
     else:
-        #dog_leg = np.concatenate(([0.0], np.divide((18000.0 * np.divide(alpha, np.pi)), arclen)))
-        #if dog_leg_course_length == 30:
-        #    dog_leg *= 0.984252
-        #dog_leg = np.concatenate(([0.0], (np.rad2deg(alpha) * (dog_leg_course_length / arclen))))
         dog_leg = np.concatenate(([0.0], (np.rad2deg(alpha) * dog_leg_course_length / arclen)))
         return np.column_stack((md, inc, az, pos, dog_leg))
 
@@ -289,46 +285,6 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     interp_pos_logs = [pos_log_dict[md]  for md in interp_depths] # get the interpolated postion log
 
     return np.array(interp_pos_logs)
-
-    # interp_pos_logs = []
-
-    # segment_cnt = len(mds) - 1
-    # for i in np.arange(segment_cnt):
-    #     md1, md2 = mds[i:i+2]
-    #     v0, v1 = tangents[i:i+2]
-        
-    #     if (i < segment_cnt  - 1):
-    #         mds_i = interp_depths[(interp_depths >= md1) & (interp_depths < md2)]
-    #     else:
-    #         mds_i = interp_depths[(interp_depths >= md1) & (interp_depths <= md2)]
-            
-    #     if len(mds_i) == 0:
-    #         continue
-            
-    #     strip_head = mds_i[0] != md1
-    #     if strip_head:
-    #         strip_head = True
-    #         mds_i = np.concatenate([[md1], mds_i])
-    #     strip_tail = mds_i[-1] != md2
-    #     if strip_tail:
-    #         strip_tail = True
-    #         mds_i = np.concatenate([mds_i, [md2]])
-    
-    #     t = (mds_i - md1) / (md2 - md1)
-    #     ang = angles[i+1]
-    #     v_i = slerp(t, v0, v1, ang)
-    #     inc_az_i = toSpherical(v_i)
-    #     srv_i = np.column_stack((mds_i, inc_az_i))
-    #     tie_in_i = tie_ins[i]
-    #     pos_log_i = position_log(srv_i, tie_in_i, report_raw=report_raw)
-        
-    #     if strip_head:
-    #         pos_log_i = pos_log_i[1:]
-    #     if strip_tail:
-    #         pos_log_i = pos_log_i[:-1]
-    #     interp_pos_logs.append(pos_log_i)
-        
-    # return interp_pos_logs if len(interp_pos_logs) == 0 else np.concatenate(interp_pos_logs, axis=0)
 
 def project(survey, tie_in, to_md, curvature=None, report_raw=False, decimals=None):
     """
@@ -406,7 +362,6 @@ def Adams_test():
     print(inslerpolate(adams[:,0:3], adams[0,3:6], step=1000, decimals=None))
 
 def main():
-    # np.set_printoptions(precision=7, floatmode='fixed')
     np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.3f}'.format})
 
     print("Hello World!")
