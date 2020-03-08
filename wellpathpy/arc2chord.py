@@ -191,7 +191,7 @@ def position_log(survey, tie_in, dog_leg_course_length=100, report_raw=False, de
     report_raw: how to report the resulting position log.
     decimals: an interger.  The number of decimals to round the relative positions
         before they are cumsum'ed to the absolute positions.  This limits the precision of the
-        values propigated with increasing MD.
+        values propagated with increasing MD.
     """
     survey = np.array(survey)
     md = survey[:,0]
@@ -238,7 +238,7 @@ def inslerpolate(survey, tie_in, step=None, dog_leg_course_length = 100, report_
     report_raw: how to report the resulting position.
     decimals: an interger.  The number of decimals to round the relative positions
         before they are cumsum'ed to the absolute positions.  This limits the precision of the
-        values propigated with increasing MD.
+        values propagated with increasing MD.
     """
     survey = np.array(survey)
     if step is None: # no interpolation
@@ -293,7 +293,7 @@ def project(survey, tie_in, to_md, curvature=None, report_raw=False, decimals=No
     If curvature is None, the curvature from the last arc of the survey is used.
     decimals: an interger.  The number of decimals to round the relative positions
         before they are cumsum'ed to the absolute positions.  This limits the precision of the
-        values propigated with increasing MD.
+        values propagated with increasing MD.
     """
     survey = np.asarray(survey)
     pos_log = position_log(survey, tie_in, report_raw=True, decimals=decimals)[-2:] # grab the last two surveys
